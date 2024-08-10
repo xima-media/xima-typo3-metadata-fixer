@@ -1,0 +1,14 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  Xima\XimaTypo3MetadataFixer\:
+    resource: '../Classes/*'
+
+  Xima\XimaTypo3MetadataFixer\Command\FixCommand:
+    tags:
+      - name: 'console.command'
+        command: 'metadata:fix'
+        schedulable: true

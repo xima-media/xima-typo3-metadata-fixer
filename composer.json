@@ -19,7 +19,7 @@
   ],
   "keywords": [
     "typo3",
-    "typo3-cms-extension",
+    "typo3-cms-extension"
   ],
   "require": {
     "php": "^8.0",
