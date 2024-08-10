@@ -7,8 +7,8 @@ services:
   Xima\XimaTypo3MetadataFixer\:
     resource: '../Classes/*'
 
-  Xima\XimaTypo3MetadataFixer\Command\FixCommand:
+  Xima\XimaTypo3MetadataFixer\Command\FixMissingCommand:
     tags:
       - name: 'console.command'
-        command: 'metadata:fix'
+        command: 'metadata:fixMissing'
         schedulable: true
