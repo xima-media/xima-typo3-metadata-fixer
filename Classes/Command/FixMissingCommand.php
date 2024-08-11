@@ -13,9 +13,9 @@ use Xima\XimaTypo3MetadataFixer\Service\MetaDataService;
 
 class FixMissingCommand extends Command
 {
-    protected const ANSWER_CREATE_METADATA = 'Create meta data for all files';
-    protected const ANSWER_DELETE_NON_REFERENCED = 'Delete files without references';
-    protected const ANSWER_DELETE_ALL = 'Delete all files including their references';
+    protected const ANSWER_CREATE_METADATA = 'Create meta data for available files';
+    protected const ANSWER_DELETE_NON_REFERENCED = 'Delete sys_files without references';
+    protected const ANSWER_DELETE_ALL = 'Delete all sys_files including their references';
 
     public function __construct(private MetaDataService $metaDataService, private FileService $fileService, string $name = null)
     {
@@ -59,15 +59,24 @@ class FixMissingCommand extends Command
         $answer = $io->askQuestion($question);
 
         if ($answer === self::ANSWER_CREATE_METADATA) {
-            $success = $this->metaDataService->createMetaDataForFiles($files);
-            if ($success) {
-                $io->success('Successfully created meta data for ' . count($files) . ' files');
-                return Command::SUCCESS;
+            $availableFiles = array_filter($files, static function ($file) {
+                return $file['file_exists'];
+            });
+            $io->progressStart(count($files));
+            foreach ($availableFiles as $file) {
+                $this->metaDataService->createMetaDataForFile($file);
+                $io->progressAdvance();
             }
+            $io->progressFinish();
 
             $errors = $this->metaDataService->getErrors();
             foreach ($errors as $error) {
                 $io->error($error->message);
+            }
+
+            if (!count($errors)) {
+                $io->success('Successfully created meta data for ' . count($files) . ' files');
+                return Command::SUCCESS;
             }
 
             $io->warning('There have been ' . count($errors) . ' errors while creating meta data for ' . count($files));
@@ -85,7 +94,7 @@ class FixMissingCommand extends Command
             $fileExists = $file['file_exists'] ?? '?';
             $fileExists = $fileExists === true ? 'yes' : $fileExists;
             $fileExists = $fileExists === false ? 'no' : $fileExists;
-            $dimensions = '-';
+            $dimensions = '';
             if (isset($file['file_is_image']) && $file['file_is_image']) {
                 $dimensions = '?';
             }
