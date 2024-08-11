@@ -28,11 +28,29 @@ class SysFileRepository extends Repository
     {
         $qb = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('sys_file');
         return $qb->select('f.*')
-            ->addSelectLiteral('count(r.uid) as reference_count')
+            ->addSelectLiteral('count(r.uid) as reference_count', '"missing meta data" as file_status')
             ->from('sys_file', 'f')
             ->leftJoin('f', 'sys_file_metadata', 'm', $qb->expr()->eq('m.file', $qb->quoteIdentifier('f.uid')))
             ->leftJoin('f', 'sys_file_reference', 'r', $qb->expr()->eq('r.uid_local', $qb->quoteIdentifier('f.uid')))
             ->where($qb->expr()->isNull('m.uid'))
+            ->groupBy('f.uid')
+            ->executeQuery()
+            ->fetchAllAssociative();
+    }
+
+    public function getImagesWithoutDimensions(): array
+    {
+        $qb = GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable('sys_file');
+        return $qb->select('f.*')
+            ->addSelectLiteral('count(r.uid) as reference_count', '"invalid dimensions" as file_status')
+            ->from('sys_file', 'f')
+            ->innerJoin('f', 'sys_file_metadata', 'm', $qb->expr()->eq('m.file', $qb->quoteIdentifier('f.uid')))
+            ->leftJoin('f', 'sys_file_reference', 'r', $qb->expr()->eq('r.uid_local', $qb->quoteIdentifier('f.uid')))
+            ->where($qb->expr()->or(
+                $qb->expr()->eq('m.width', 0),
+                $qb->expr()->eq('m.height', 0)
+            ))
+            ->andWhere($qb->expr()->eq('f.type', 2))
             ->groupBy('f.uid')
             ->executeQuery()
             ->fetchAllAssociative();

@@ -34,7 +34,7 @@ class FixMissingCommand extends Command
         Bootstrap::initializeBackendAuthentication();
         $io = new SymfonyStyle($input, $output);
 
-        $files = $this->metaDataService->getFilesWithoutMetaData();
+        $files = $this->metaDataService->getCorruptedFiles();
 
         if (!count($files)) {
             $io->success('No sys_files with missing meta data found.');
@@ -83,7 +83,7 @@ class FixMissingCommand extends Command
     protected function renderTableForFiles(array $files, SymfonyStyle $io): void
     {
         $table = $io->createTable();
-        $table->setHeaders(['uid', 'identifier', 'references', 'file exists', 'dimensions']);
+        $table->setHeaders(['uid', 'status', 'identifier', 'references', 'file exists', 'dimensions']);
 
         $rows = array_map(static function ($file) {
             $fileExists = $file['file_exists'] ?? '?';
@@ -96,11 +96,11 @@ class FixMissingCommand extends Command
             if (isset($file['file_image_width'], $file['file_image_height'])) {
                 $dimensions = $file['file_image_width'] . 'x' . $file['file_image_height'];
             }
-            return [$file['uid'], $file['identifier'], $file['reference_count'], $fileExists, $dimensions];
+            return [$file['uid'], $file['file_status'], $file['identifier'], $file['reference_count'], $fileExists, $dimensions];
         }, $files);
 
         usort($rows, static function ($a, $b) {
-            return $a[2] <=> $b[2];
+            return $a[3] <=> $b[3];
         });
 
         $table->addRows($rows);

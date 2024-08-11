@@ -17,8 +17,8 @@ composer require xima/xima-typo3-metadata-fixer
 
 ## Features
 
-* Detect missing `sys_file_metadata`
-* Detect invalid image dimensions in `sys_file_metadata`
+* Detect + create missing `sys_file_metadata`
+* Detect + fix invalid image dimensions in `sys_file_metadata`
 * Delete not referenced `sys_file` records including their local file.
 
 ## Usage

@@ -44,6 +44,8 @@ class FileService implements LoggerAwareInterface
             return false;
         }
 
+        $file['file_is_image'] = self::isImage($file);
+
         $resourceStorage = $fileObject->getStorage();
 
         if (!$resourceStorage) {
@@ -64,7 +66,6 @@ class FileService implements LoggerAwareInterface
             return false;
         }
 
-        $file['file_is_image'] = self::isImage($file);
         if ($file['file_is_image']) {
             $imageInfo = GeneralUtility::makeInstance(ImageInfo::class, $filePath);
             $file['file_image_width'] = $imageInfo->getWidth();

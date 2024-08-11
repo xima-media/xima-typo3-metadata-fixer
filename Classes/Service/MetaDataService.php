@@ -29,9 +29,12 @@ class MetaDataService implements LoggerAwareInterface
         return $this->errors;
     }
 
-    public function getFilesWithoutMetaData(): array
+    public function getCorruptedFiles(): array
     {
-        return $this->sysFileRepository->getWithoutMetaData();
+        $files = $this->sysFileRepository->getImagesWithoutDimensions();
+        $files = array_merge($files, $this->sysFileRepository->getWithoutMetaData());
+
+        return $files;
     }
 
     public function createMetaDataForFile(array &$file): bool
