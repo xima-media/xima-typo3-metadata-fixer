@@ -79,13 +79,20 @@ class FixMissingCommand extends Command
     protected function renderTableForFiles(array $files, SymfonyStyle $io): void
     {
         $table = $io->createTable();
-        $table->setHeaders(['uid', 'identifier', 'references', 'file exists']);
+        $table->setHeaders(['uid', 'identifier', 'references', 'file exists', 'dimensions']);
 
         $rows = array_map(static function ($file) {
             $fileExists = $file['file_exists'] ?? '?';
             $fileExists = $fileExists === true ? 'yes' : $fileExists;
             $fileExists = $fileExists === false ? 'no' : $fileExists;
-            return [$file['uid'], $file['identifier'], $file['reference_count'], $fileExists];
+            $dimensions = '-';
+            if (isset($file['file_is_image']) && $file['file_is_image']) {
+                $dimensions = '?';
+            }
+            if (isset($file['file_image_width'], $file['file_image_height'])) {
+                $dimensions = $file['file_image_width'] . 'x' . $file['file_image_height'];
+            }
+            return [$file['uid'], $file['identifier'], $file['reference_count'], $fileExists, $dimensions];
         }, $files);
 
         usort($rows, static function ($a, $b) {

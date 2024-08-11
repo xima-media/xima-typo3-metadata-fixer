@@ -7,6 +7,9 @@ use Psr\Log\LoggerAwareTrait;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Resource\ResourceStorage;
+use TYPO3\CMS\Core\Type\File\ImageInfo;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Utility\PathUtility;
 use Xima\XimaTypo3MetadataFixer\Domain\Model\Storage;
 
 class FileService implements LoggerAwareInterface
@@ -62,6 +65,14 @@ class FileService implements LoggerAwareInterface
             return false;
         }
 
+        $file['file_is_image'] = self::isImage($file);
+        if ($file['file_is_image']) {
+            $imageInfo = GeneralUtility::makeInstance(ImageInfo::class, $filePath);
+            $file['file_image_width'] = $imageInfo->getWidth();
+            $file['file_image_height'] = $imageInfo->getHeight();
+        }
+
+        $file['file_path'] = $filePath;
         $file['file_exists'] = true;
         return true;
     }
@@ -88,5 +99,31 @@ class FileService implements LoggerAwareInterface
         $this->storages[$resourceStorage->getUid()] = $storage;
 
         return $storage;
+    }
+
+    protected function extractRequiredMetaData(array $file): array
+    {
+        $metaData = [];
+
+        if (!self::isImage($file)) {
+            return $metaData;
+        }
+        $imageInfo = GeneralUtility::makeInstance(ImageInfo::class, $file['file_path']);
+        $metaData = [
+            'width' => $imageInfo->getWidth(),
+            'height' => $imageInfo->getHeight(),
+        ];
+
+        return $metaData;
+    }
+
+    protected static function isImage(array $file): bool
+    {
+        $pathinfo = PathUtility::pathinfo($file['name']);
+        $extension = strtolower($pathinfo['extension'] ?? '');
+        return GeneralUtility::inList(
+            strtolower($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'] ?? ''),
+            $extension
+        ) && $file['size'] > 0;
     }
 }

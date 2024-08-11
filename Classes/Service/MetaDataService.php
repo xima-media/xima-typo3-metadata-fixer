@@ -4,9 +4,7 @@ namespace Xima\XimaTypo3MetadataFixer\Service;
 
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use TYPO3\CMS\Core\Resource\File;
-use TYPO3\CMS\Core\Type\File\ImageInfo;
-use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Core\Resource\ResourceFactory;
 use Xima\XimaTypo3MetadataFixer\Domain\Model\Error;
 use Xima\XimaTypo3MetadataFixer\Domain\Repository\SysFileRepository;
 
@@ -17,8 +15,11 @@ class MetaDataService implements LoggerAwareInterface
     /** @var Error[] */
     protected array $errors = [];
 
-    public function __construct(private readonly SysFileRepository $sysFileRepository, private readonly FileService $fileService)
-    {
+    public function __construct(
+        private readonly SysFileRepository $sysFileRepository,
+        private readonly FileService $fileService,
+        private readonly ResourceFactory $resourceFactory
+    ) {
     }
 
     public function getErrors(): array
@@ -36,7 +37,7 @@ class MetaDataService implements LoggerAwareInterface
         $this->errors = [];
         foreach ($files as $file) {
             if (!$file['file_exists']) {
-                $this->errors[] = new Error('Local file for sys_file [uid:' . $file['uid'] . '] does not exist');
+                continue;
             }
         }
         return !count($this->errors);
