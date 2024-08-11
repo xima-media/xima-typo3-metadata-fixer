@@ -61,8 +61,20 @@ class MetaDataService implements LoggerAwareInterface
         $fileObject->getMetaData()->add($metaData)->save();
     }
 
-    public function deleteNonReferencedFilesWithoutMetaData(): bool
+    public function deleteNonReferencedFilesWithoutMetaData(array $files): void
     {
-        return true;
+        $this->sysFileRepository->deleteNotReferenced();
+
+        $filesToDelete = array_filter($files, static function ($file) {
+            return $file['file_exists'] && !$file['reference_count'];
+        });
+
+        try {
+            foreach ($filesToDelete as $file) {
+                unlink($file['file_path']);
+            }
+        } catch (\Exception $e) {
+            $this->errors[] = new Error($e->getMessage());
+        }
     }
 }

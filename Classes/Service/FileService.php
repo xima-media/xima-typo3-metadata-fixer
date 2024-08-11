@@ -27,8 +27,7 @@ class FileService implements LoggerAwareInterface
     {
         $missing = 0;
         foreach ($files as &$file) {
-            $exists = $this->checkFileExistence($file);
-            if ($exists) {
+            if (!$this->checkFileExistence($file)) {
                 $missing++;
             }
         }

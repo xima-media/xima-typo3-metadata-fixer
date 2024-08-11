@@ -37,7 +37,7 @@ class FixMissingCommand extends Command
         $files = $this->metaDataService->getFilesWithoutMetaData();
 
         if (!count($files)) {
-            $io->success('No files with missing meta data found.');
+            $io->success('No sys_files with missing meta data found.');
             return Command::SUCCESS;
         }
 
@@ -45,7 +45,7 @@ class FixMissingCommand extends Command
 
         $this->renderTableForFiles($files, $io);
 
-        $io->warning('Found ' . count($files) . ' files with missing meta data.');
+        $io->warning('Found ' . count($files) . ' sys_files with missing meta data.');
 
         if ($missingFileCount) {
             $io->error('There are ' . $missingFileCount . ' missing files.');
@@ -62,24 +62,19 @@ class FixMissingCommand extends Command
             $availableFiles = array_filter($files, static function ($file) {
                 return $file['file_exists'];
             });
-            $io->progressStart(count($files));
+            $io->progressStart(count($availableFiles));
             foreach ($availableFiles as $file) {
                 $this->metaDataService->createMetaDataForFile($file);
                 $io->progressAdvance();
             }
             $io->progressFinish();
 
-            $errors = $this->metaDataService->getErrors();
-            foreach ($errors as $error) {
-                $io->error($error->message);
-            }
+            return $this->displayServiceResult($io);
+        }
 
-            if (!count($errors)) {
-                $io->success('Successfully created meta data for ' . count($files) . ' files');
-                return Command::SUCCESS;
-            }
-
-            $io->warning('There have been ' . count($errors) . ' errors while creating meta data for ' . count($files));
+        if ($answer === self::ANSWER_DELETE_NON_REFERENCED) {
+            $this->metaDataService->deleteNonReferencedFilesWithoutMetaData($files);
+            return $this->displayServiceResult($io);
         }
 
         return Command::FAILURE;
@@ -110,5 +105,21 @@ class FixMissingCommand extends Command
 
         $table->addRows($rows);
         $table->render();
+    }
+
+    protected function displayServiceResult(SymfonyStyle $io): bool
+    {
+        $errors = $this->metaDataService->getErrors();
+        foreach ($errors as $error) {
+            $io->error($error->message);
+        }
+
+        if (!count($errors)) {
+            $io->success('Success');
+            return Command::SUCCESS;
+        }
+
+        $io->warning(sprintf('There were %s errors', count($errors)));
+        return Command::FAILURE;
     }
 }
