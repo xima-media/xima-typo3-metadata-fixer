@@ -7,6 +7,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use TYPO3\CMS\Core\Core\Bootstrap;
+use Xima\XimaTypo3MetadataFixer\Service\FileService;
 use Xima\XimaTypo3MetadataFixer\Service\MetaDataService;
 
 class FixMissingCommand extends Command
@@ -15,7 +17,7 @@ class FixMissingCommand extends Command
     protected const ANSWER_DELETE_NON_REFERENCED = 'Delete files without references';
     protected const ANSWER_DELETE_ALL = 'Delete all files including their references';
 
-    public function __construct(private MetaDataService $metaDataService, string $name = null)
+    public function __construct(private MetaDataService $metaDataService, private FileService $fileService, string $name = null)
     {
         parent::__construct($name);
     }
@@ -29,6 +31,7 @@ class FixMissingCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        Bootstrap::initializeBackendAuthentication();
         $io = new SymfonyStyle($input, $output);
 
         $files = $this->metaDataService->getFilesWithoutMetaData();
@@ -38,14 +41,15 @@ class FixMissingCommand extends Command
             return Command::SUCCESS;
         }
 
-        $table = $io->createTable();
-        $table->setHeaders(['uid', 'identifier', 'references']);
-        $table->addRows(array_map(static function ($file) {
-            return [$file['uid'], $file['identifier'], $file['reference_count']];
-        }, $files));
-        $table->render();
+        $missingFileCount = $this->fileService->getCountOfMissingFiles($files);
+
+        $this->renderTableForFiles($files, $io);
 
         $io->warning('Found ' . count($files) . ' files with missing meta data.');
+
+        if ($missingFileCount) {
+            $io->error('There are ' . $missingFileCount . ' missing files.');
+        }
 
         $question = new ChoiceQuestion('What should be done?', [
             self::ANSWER_CREATE_METADATA,
@@ -55,7 +59,7 @@ class FixMissingCommand extends Command
         $answer = $io->askQuestion($question);
 
         if ($answer === self::ANSWER_CREATE_METADATA) {
-            $success = $this->metaDataService->createMetaDataForFiles();
+            $success = $this->metaDataService->createMetaDataForFiles($files);
             if ($success) {
                 $io->success('Successfully created meta data for ' . count($files) . ' files');
                 return Command::SUCCESS;
@@ -66,9 +70,29 @@ class FixMissingCommand extends Command
                 $io->error($error->message);
             }
 
-            $io->warning('There have been ' . count($errors) . 'errors while creating meta data for ' . count($files));
+            $io->warning('There have been ' . count($errors) . ' errors while creating meta data for ' . count($files));
         }
 
         return Command::FAILURE;
+    }
+
+    protected function renderTableForFiles(array $files, SymfonyStyle $io): void
+    {
+        $table = $io->createTable();
+        $table->setHeaders(['uid', 'identifier', 'references', 'file exists']);
+
+        $rows = array_map(static function ($file) {
+            $fileExists = $file['file_exists'] ?? '?';
+            $fileExists = $fileExists === true ? 'yes' : $fileExists;
+            $fileExists = $fileExists === false ? 'no' : $fileExists;
+            return [$file['uid'], $file['identifier'], $file['reference_count'], $fileExists];
+        }, $files);
+
+        usort($rows, static function ($a, $b) {
+            return $a[2] <=> $b[2];
+        });
+
+        $table->addRows($rows);
+        $table->render();
     }
 }
