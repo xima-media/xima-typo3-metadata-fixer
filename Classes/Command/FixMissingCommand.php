@@ -45,7 +45,7 @@ class FixMissingCommand extends Command
 
         $this->renderTableForFiles($files, $io);
 
-        $io->warning('Found ' . count($files) . ' sys_files with missing meta data.');
+        $io->warning('Found ' . count($files) . ' corrupted sys_files.');
 
         if ($missingFileCount) {
             $io->error('There are ' . $missingFileCount . ' missing files.');
