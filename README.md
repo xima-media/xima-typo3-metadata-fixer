@@ -1,7 +1,5 @@
 <div align="center">
 
-![Extension icon](Resources/Public/Icons/Extension.svg)
-
 # TYPO3 extension `xima_typo3_metadata_fixer`
 
 </div>
